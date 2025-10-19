@@ -694,7 +694,7 @@ export default function App() {
   fontSize: 14,
   textAlign: "center",
   marginBottom: 10,
-  marginTop:15
+  marginTop:20
 }}>
   Privacy Policy
 </Text>
