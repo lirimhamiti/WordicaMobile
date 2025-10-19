@@ -630,41 +630,52 @@ export default function App() {
 
 
         {/* Speak / stop recording */}
-        <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-          <TouchableOpacity
-            disabled={isAudioLocked || isAudioPlaying}
-            style={[
-              styles.micButton,
-              isRecording && {
-                backgroundColor: "#ff5252",
-                borderColor: "#c62828",
-                borderWidth: 4,
-              },
-              (isAudioLocked || isAudioPlaying) && { opacity: 0.5 }, // show visually that it's disabled
-            ]}
-            onPress={isRecording ? stopRecording : startRecording}
-          >
-            <Ionicons
-              name={
-                isAudioLocked || isAudioPlaying
-                  ? "mic-off-circle-outline"
-                  : isRecording
-                    ? "mic"
-                    : "mic-outline"
-              }
-              size={44}
-              color={
-                isAudioLocked || isAudioPlaying
-                  ? "#9e9e9e"
-                  : isRecording
-                    ? "#fff"
-                    : "#212121"
-              }
-            />
+      <View style={styles.micContainer}>
+  <Animated.View
+    style={[
+      {
+        transform: [{ scale: pulseAnim }],
+        alignItems: "center",
+        justifyContent: "center",
+      },
+      { position: "absolute" }, // keeps animation centered, no layout distortion
+    ]}
+  >
+    <TouchableOpacity
+      disabled={isAudioLocked || isAudioPlaying}
+      style={[
+        styles.micButton,
+        isRecording && {
+          backgroundColor: "#ff5252",
+          borderColor: "#c62828",
+          borderWidth: 4,
+        },
+        (isAudioLocked || isAudioPlaying) && { opacity: 0.5 },
+      ]}
+      onPress={isRecording ? stopRecording : startRecording}
+      activeOpacity={0.8}
+    >
+      <Ionicons
+        name={
+          isAudioLocked || isAudioPlaying
+            ? "mic-off-circle-outline"
+            : isRecording
+            ? "mic"
+            : "mic-outline"
+        }
+        size={44}
+        color={
+          isAudioLocked || isAudioPlaying
+            ? "#9e9e9e"
+            : isRecording
+            ? "#fff"
+            : "#212121"
+        }
+      />
+    </TouchableOpacity>
+  </Animated.View>
+</View>
 
-          </TouchableOpacity>
-
-        </Animated.View>
 
 
 
@@ -682,7 +693,8 @@ export default function App() {
   textDecorationLine: "underline",
   fontSize: 14,
   textAlign: "center",
-  marginBottom: 10
+  marginBottom: 10,
+  marginTop:15
 }}>
   Privacy Policy
 </Text>
@@ -757,7 +769,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 8,
     elevation: 8,
-    marginTop: 30
+    marginTop: 50
   },
 
 
@@ -786,7 +798,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     shadowRadius: 4,
     elevation: 3,
-    marginTop: -20
+    marginTop: -30
   },
   topBar: {
     position: "absolute",
@@ -877,6 +889,16 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     backgroundColor: "#bdbdbd",
   },
+micContainer: {
+  height: 100, // fixes layout height so Privacy Policy never moves
+  width: "100%",
+  alignItems: "center",
+  justifyContent: "center",
+  marginBottom: 20,
+  overflow: "visible", // ensures no cropping of animation
+},
+
+
 
 
 });
