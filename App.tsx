@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   LogBox,
   ScrollView,
+  Linking
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Audio } from "expo-av";
@@ -25,7 +26,7 @@ LogBox.ignoreLogs([
   "SafeAreaView has been deprecated",
 ]);
 
-const API_BASE = "https://719e5dc5c06e.ngrok-free.app";
+const API_BASE = "https://244b4022b6b5.ngrok-free.app";
 
 // Data for each category
 const animals = ["Dog", "Cat", "Cow", "Horse", "Lion", "Chicken", "Rabbit", "Bear"];
@@ -114,34 +115,32 @@ export default function App() {
     }).start();
   }, [darkMode]);
 
-  useEffect(() => {
-    if (feedbackColor) {
-      feedbackAnim.setValue(0);
-      Animated.sequence([
-        // Fade in smoothly
-        Animated.timing(feedbackAnim, {
-          toValue: 0.8,
-          duration: 600,
-          easing: Easing.out(Easing.quad),
-          useNativeDriver: false,
-        }),
-        // Hold the color for a moment
-        Animated.delay(1000),
-        // Fade out smoothly
-        Animated.timing(feedbackAnim, {
-          toValue: 0,
-          duration: 1200,
-          easing: Easing.inOut(Easing.quad),
-          useNativeDriver: false,
-        }),
-      ]).start(({ finished }) => {
-        // Wait a bit AFTER the fade-out to clear color
-        if (finished) {
-          setTimeout(() => setFeedbackColor(null), 300);
-        }
-      });
-    }
-  }, [feedbackColor]);
+ useEffect(() => {
+  if (!feedbackColor) return;
+
+  feedbackAnim.stopAnimation();       // stop any previous sequence
+  feedbackAnim.setValue(0);
+
+  Animated.sequence([
+    Animated.timing(feedbackAnim, {
+      toValue: 0.8,
+      duration: 500,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: false,
+    }),
+    Animated.delay(1000),
+    Animated.timing(feedbackAnim, {
+      toValue: 0,
+      duration: 1000,
+      easing: Easing.inOut(Easing.quad),
+      useNativeDriver: false,
+    }),
+  ]).start(() => {
+    // clear color *after* fade-out actually finishes
+    setFeedbackColor(null);
+  });
+}, [feedbackColor]);
+
 
 
 
@@ -672,7 +671,22 @@ export default function App() {
 
         {/* <Text style={{ marginTop: 10, fontSize: 16 }}>Heard: {heard || "—"}</Text> */}
 
-
+<TouchableOpacity
+  onPress={() =>
+    Linking.openURL("https://wordica-privacy.netlify.app/")
+  }
+  style={{ marginTop: 10 }}
+>
+<Text style={{
+  color: "#1976d2",
+  textDecorationLine: "underline",
+  fontSize: 14,
+  textAlign: "center",
+  marginBottom: 10
+}}>
+  Privacy Policy
+</Text>
+</TouchableOpacity>
 
       </SafeAreaView>
     </SafeAreaProvider>
