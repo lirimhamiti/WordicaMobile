@@ -2,7 +2,8 @@
   "expo": {
     "name": "MobileWordica",
     "slug": "mobilewordica",
-    "version": "1.0.0",
+    "version": "1.0.1",
+    
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -12,14 +13,31 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "platforms": [
+      "ios",
+      "android"
+    ],
     "ios": {
-      "supportsTablet": true
+      "buildNumber": "2",
+      "supportsTablet": true,
+      "bundleIdentifier": "com.lirimhamiti.mobilewordica",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Wordica needs access to your microphone to recognize your speech.",
+        "NSCameraUsageDescription": "Wordica may use the camera for future updates (optional)."
+      }
     },
     "android": {
+      "versionCode": 2,
+      "package": "com.lirimhamiti.mobilewordica",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "permissions": [
+        "RECORD_AUDIO",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
@@ -27,7 +45,19 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-audio"
-    ]
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Allow Wordica to access your microphone."
+        }
+      ]
+    ],
+    "extra": {
+      "privacyPolicyUrl": "https://wordica-privacy.netlify.app/",
+      "eas": {
+        "projectId": "ba83a04e-2cd4-402b-a9eb-360ac17fb108"
+      }
+    },
+    "owner": "lirimhamiti"
   }
 }
