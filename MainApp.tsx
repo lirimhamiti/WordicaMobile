@@ -28,7 +28,7 @@ LogBox.ignoreLogs([
     "SafeAreaView has been deprecated",
 ]);
 
-const API_BASE = "https://wordica-h6e9gegcehabaja9.eastus-01.azurewebsites.net";
+const API_BASE = "https://apiwordica-b8h3eufqdzape9cz.westeurope-01.azurewebsites.net";
 
 // Data for each category
 const animals = ["Dog", "Cat", "Cow", "Horse", "Lion", "Chicken", "Rabbit", "Bear"];
@@ -79,7 +79,6 @@ const imageMap: Record<string, any> = {
 };
 
 export default function MainApp() {
-
     const [category, setCategory] = useState("Animals");
     const [index, setIndex] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
@@ -96,10 +95,9 @@ export default function MainApp() {
     const [isAudioPlaying, setIsAudioPlaying] = useState(false);
     const [isAudioLocked, setIsAudioLocked] = useState(false);
     const fadeAnim = useRef(new Animated.Value(0)).current;
-const [isImageLoading, setIsImageLoading] = useState(false);
+    const [isImageLoading, setIsImageLoading] = useState(false);
 
-
-    // Category-specific data
+    // Category data
     const items =
         category === "Animals" ? animals :
             category === "Fruits" ? fruits :
@@ -122,32 +120,25 @@ const [isImageLoading, setIsImageLoading] = useState(false);
 
     useEffect(() => {
         if (!feedbackColor) return;
-
         feedbackAnim.stopAnimation();
         feedbackAnim.setValue(1);
-
         Animated.timing(feedbackAnim, {
             toValue: 0,
             duration: 1200,
             easing: Easing.out(Easing.quad),
-            useNativeDriver: true, // now we can use native driver!
+            useNativeDriver: true,
         }).start(() => setFeedbackColor(null));
     }, [feedbackColor]);
 
-
-
-
-
-
-    // 🔊 TTS from backend
+    // 🔊 Play text using backend TTS
     const playTTS = async (text: string) => {
+       // console.log("🎤 Sending TTS request to:", `${API_BASE}/tts`, "Text:", text);
         try {
             setIsAudioPlaying(true);
-
-            // 🧩 Stop any currently playing sound first
             if (soundRef.current) {
                 const status = await soundRef.current.getStatusAsync();
                 if (status.isLoaded) {
+                   // console.log("🔇 Stopping currently playing sound before new TTS...");
                     await soundRef.current.stopAsync();
                     await soundRef.current.unloadAsync();
                 }
@@ -160,205 +151,161 @@ const [isImageLoading, setIsImageLoading] = useState(false);
                 body: JSON.stringify({ Text: text }),
             });
 
-            if (!res.ok) throw new Error("TTS failed");
-            const data = await res.json();
-            const filePath = FileSystem.cacheDirectory + "tts.wav";
-            await FileSystem.writeAsStringAsync(filePath, data.audio, {
-                encoding: FileSystem.EncodingType.Base64,
-            });
+           // console.log("📡 TTS response status:", res.status);
+            if (!res.ok) throw new Error("TTS request failed");
 
-            await Audio.setAudioModeAsync({
-                allowsRecordingIOS: false,
-                playsInSilentModeIOS: true,
-            });
+            const data = await res.json();
+          //  console.log("✅ TTS success, received audio Base64 length:", data.audio?.length);
+
+            const filePath = FileSystem.cacheDirectory + "tts.wav";
+            await FileSystem.writeAsStringAsync(filePath, data.audio, { encoding: FileSystem.EncodingType.Base64 });
+
+            await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
 
             const { sound } = await Audio.Sound.createAsync({ uri: filePath });
             soundRef.current = sound;
 
             sound.setOnPlaybackStatusUpdate((status) => {
-                if (!status.isLoaded) return;
-                if (status.didJustFinish) setIsAudioPlaying(false);
+                if (status.isLoaded && status.didJustFinish) setIsAudioPlaying(false);
             });
 
+           // console.log("▶️ Playing TTS audio...");
             await sound.playAsync();
         } catch (err) {
+          //  console.error("❌ TTS error:", err);
             setIsAudioPlaying(false);
         }
     };
 
-
-
-
-    useEffect(() => {
-        if (isRecording) {
-            Animated.loop(
-                Animated.sequence([
-                    Animated.timing(pulseAnim, {
-                        toValue: 1.2,
-                        duration: 700,
-                        easing: Easing.inOut(Easing.ease),
-                        useNativeDriver: true,
-                    }),
-                    Animated.timing(pulseAnim, {
-                        toValue: 1,
-                        duration: 700,
-                        easing: Easing.inOut(Easing.ease),
-                        useNativeDriver: true,
-                    }),
-                ])
-            ).start();
-        } else {
-            pulseAnim.setValue(1);
-        }
-    }, [isRecording]);
-
-    useEffect(() => {
-        const nextIndex = (index + 1) % items.length;
-        const nextKey = items[nextIndex]?.toLowerCase();
-        if (nextKey && imageMap[nextKey]) {
-            Image.prefetch(Image.resolveAssetSource(imageMap[nextKey]).uri);
-        }
-    }, [index, category]);
-
-
-
     // 🎙 Start mic recording
     const startRecording = async () => {
         try {
+          //  console.log("🎙 Starting recording...");
             if (recording) {
                 await recording.stopAndUnloadAsync();
                 setRecording(null);
             }
 
             await Audio.requestPermissionsAsync();
-            await Audio.setAudioModeAsync({
-                allowsRecordingIOS: true,
-                playsInSilentModeIOS: true,
-            });
+            await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
 
-            const { recording: newRecording } = await Audio.Recording.createAsync(
-                Audio.RecordingOptionsPresets.HIGH_QUALITY
-            );
-
+            const { recording: newRecording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
             setRecording(newRecording);
             setIsRecording(true);
         } catch (err) {
+            console.error("❌ Error starting recording:", err);
         }
     };
 
-    // 🛑 Stop and send to backend
+    // 🛑 Stop recording and process audio
     const stopRecording = async () => {
         try {
+           // console.log("🛑 Stopping recording...");
             if (!recording) return;
             setIsRecording(false);
             await recording.stopAndUnloadAsync();
             setIsAudioLocked(true);
+
             const uri = recording.getURI();
+           // console.log("🎧 Recorded file URI:", uri);
             setRecording(null);
             if (!uri) return;
 
             const form = new FormData();
             form.append("audio", { uri, name: "clip.m4a", type: "audio/m4a" } as any);
 
+           // console.log("📡 Sending STT request to:", `${API_BASE}/stt`);
             const sttRes = await fetch(`${API_BASE}/stt`, { method: "POST", body: form });
-            if (!sttRes.ok) return ;
+          //  console.log("STT response status:", sttRes.status);
+
+            if (!sttRes.ok) throw new Error("STT failed");
             const { text } = await sttRes.json();
 
+           // console.log("🗣 Recognized speech:", text);
             const recognized = (text || "").trim();
             setHeard(recognized);
 
-            const isCorrect =
-                recognized.toLowerCase().replace(/[^\w]/g, "") === currentItem.toLowerCase();
+            const isCorrect = recognized.toLowerCase().replace(/[^\w]/g, "") === currentItem.toLowerCase();
+           // console.log("✅ Pronunciation check:", isCorrect ? "Correct" : "Incorrect");
 
             setFeedbackColor(isCorrect ? "green" : "red");
+            setProgressStatus(prev => ({ ...prev, [index]: isCorrect ? "correct" : "wrong" }));
 
-            setProgressStatus(prev => ({
-                ...prev,
-                [index]: isCorrect ? "correct" : "wrong",
-            }));
-
-
-            // Remove after short delay
             setTimeout(() => setFeedbackColor(null), 800);
 
+          //  console.log("💬 Sending CHAT request to:", `${API_BASE}/chat`);
             const chatRes = await fetch(`${API_BASE}/chat`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ Message: recognized.toLowerCase().replace(/[^\w]/g, ""), CorrectWord: currentItem }),
             });
-            if (!chatRes.ok) return ;
+
+          //  console.log("CHAT response status:", chatRes.status);
+            if (!chatRes.ok) throw new Error("CHAT failed");
+
             const chatData = await chatRes.json();
+           // console.log("🤖 CHAT reply:", chatData.reply);
 
             const replyPath = FileSystem.cacheDirectory + "airesponse.wav";
-            await FileSystem.writeAsStringAsync(replyPath, chatData.audio, {
-                encoding: FileSystem.EncodingType.Base64,
-            });
+            await FileSystem.writeAsStringAsync(replyPath, chatData.audio, { encoding: FileSystem.EncodingType.Base64 });
 
             if (soundRef.current) {
                 await soundRef.current.unloadAsync();
                 soundRef.current = null;
             }
 
-            setIsAudioPlaying(true); // block mic while motivational audio plays
-
+            setIsAudioPlaying(true);
             const { sound } = await Audio.Sound.createAsync({ uri: replyPath });
             soundRef.current = sound;
 
             sound.setOnPlaybackStatusUpdate((status) => {
                 if (!status.isLoaded) return;
                 if (status.didJustFinish) {
-                    setIsAudioPlaying(false); // unblock mic after reply finishes
+                    setIsAudioPlaying(false);
                     setIsAudioLocked(false);
-                    if (isCorrect) {
-                        setIndex((i) => (i + 1) % items.length);
-                    }
+                    if (isCorrect) setIndex((i) => (i + 1) % items.length);
                 }
             });
 
+          //  console.log("🎧 Playing AI reply audio...");
             await sound.playAsync();
-
-
         } catch (err) {
-            ;
+           // console.error("❌ stopRecording error:", err);
         } finally {
             await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
         }
-
     };
 
-
-    // Play automatically when category or index changes
+    // 🖼 Handle image transitions
     const ttsKey = `${category}-${index}`;
     const lastKeyRef = useRef<string | null>(null);
 
-useEffect(() => {
-  setIsImageLoading(true);
-  if (lastKeyRef.current === ttsKey) return;
-  lastKeyRef.current = ttsKey;
+    useEffect(() => {
+      //  console.log("🖼 Changing item:", currentItem, "Category:", category);
+        setIsImageLoading(true);
+        if (lastKeyRef.current === ttsKey) return;
+        lastKeyRef.current = ttsKey;
 
-  // Always start by showing the spinner
-  setIsImageLoading(true);
-  fadeAnim.setValue(0);
+        fadeAnim.setValue(0);
+        const animate = async () => {
+            await new Promise(resolve => requestAnimationFrame(resolve));
+            await new Promise(resolve => setTimeout(resolve, 150));
 
-  // Wait briefly to ensure React updates the new image
-  const animate = async () => {
-    await new Promise(resolve => requestAnimationFrame(resolve));
-    await new Promise(resolve => setTimeout(resolve, 150));
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 600,
+                easing: Easing.in(Easing.quad),
+                useNativeDriver: true,
+            }).start(() => {
+                setIsImageLoading(false);
+               // console.log("🔊 Auto-playing TTS for:", currentItem);
+                playTTS(currentItem);
+            });
+        };
+        animate();
+    }, [ttsKey, currentItem]);
 
-    // Fade in the new image
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 600,
-      easing: Easing.in(Easing.quad),
-      useNativeDriver: true,
-    }).start(() => {
-      setIsImageLoading(false); // hide spinner after fade-in completes
-      playTTS(currentItem);
-    });
-  };
 
-  animate();
-}, [ttsKey, currentItem]);
 
 
 
